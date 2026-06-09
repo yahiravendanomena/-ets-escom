@@ -1,0 +1,65 @@
+name: ets_escom
+description: "Sistema de gestión de ETS para ESCOM - IPN"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Estado
+  flutter_riverpod: ^2.5.1
+
+  # Inyección de dependencias
+  get_it: ^7.7.0
+
+  # HTTP / API REST
+  dio: ^5.7.0
+
+  # Modelos / Programación funcional
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+
+  # Persistencia local
+  sqflite: ^2.3.3
+  shared_preferences: ^2.3.2
+  path: ^1.9.0
+  path_provider: ^2.1.4
+
+  # Capacidades nativas
+  flutter_local_notifications: ^17.2.3
+  url_launcher: ^6.3.1
+  timezone: ^0.9.4
+
+  # Exportación
+  pdf: ^3.11.1
+  printing: ^5.13.3
+  add_2_calendar: ^3.0.1
+
+  # Navegación
+  go_router: ^14.2.7
+
+  # Seguridad
+  crypto: ^3.0.5
+  flutter_secure_storage: ^9.2.2
+
+  # UI / utilidades
+  intl: ^0.19.0
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
