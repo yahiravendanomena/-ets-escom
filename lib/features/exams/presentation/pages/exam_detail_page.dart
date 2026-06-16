@@ -7,12 +7,6 @@ import '../../domain/entities/exam.dart';
 import '../providers/exams_notifier.dart';
 
 /// Pantalla de detalle de un ETS.
-///
-/// Muestra toda la información del examen y permite:
-/// - Marcar/desmarcar como favorito.
-/// - Programar notificación.
-/// - Abrir ubicación en mapas.
-/// - Exportar a PDF / iCalendar (próximamente).
 class ExamDetailPage extends ConsumerWidget {
   final Exam exam;
 
@@ -63,12 +57,19 @@ class ExamDetailPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    exam.subject,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
+                  // Título con Hero animation (vuela desde la card).
+                  Hero(
+                    tag: 'exam-title-${exam.id}',
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Text(
+                        exam.subject,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -174,7 +175,6 @@ class ExamDetailPage extends ConsumerWidget {
     );
   }
 
-  /// Tag pequeño con texto blanco sobre fondo translúcido (para el header).
   Widget _buildTag(String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -193,10 +193,10 @@ class ExamDetailPage extends ConsumerWidget {
     );
   }
 
-  /// Abre Google Maps buscando el edificio.
   Future<void> _openMap(BuildContext context, Exam exam) async {
     final query = Uri.encodeComponent('ESCOM IPN ${exam.building}');
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+    final url =
+        Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
 
     try {
       if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
@@ -215,7 +215,6 @@ class ExamDetailPage extends ConsumerWidget {
     }
   }
 
-  /// Mensaje "Próximamente" para features no implementadas.
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

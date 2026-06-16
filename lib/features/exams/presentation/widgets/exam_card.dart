@@ -41,10 +41,17 @@ class ExamCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          exam.subject,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                        // Título con Hero animation (vuela al detalle).
+                        Hero(
+                          tag: 'exam-title-${exam.id}',
+                          child: Material(
+                            color: Colors.transparent,
+                            child: Text(
+                              exam.subject,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
