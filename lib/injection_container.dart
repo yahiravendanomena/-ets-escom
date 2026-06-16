@@ -1,3 +1,4 @@
+import 'features/notifications/services/notification_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get_it/get_it.dart';
 import 'core/network/network_info.dart';
@@ -63,4 +64,8 @@ Future<void> initDependencies() async {
   // CORE
   // ============================================
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl());
-}
+// ============================================
+  // NOTIFICATIONS
+  // ============================================
+  sl.registerLazySingleton(() => NotificationService());
+  await sl<NotificationService>().init();}

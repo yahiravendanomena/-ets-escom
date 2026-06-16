@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../injection_container.dart';
+import '../../../notifications/services/notification_service.dart';
 import '../../domain/entities/exam.dart';
 import '../providers/exams_notifier.dart';
 
@@ -159,8 +161,7 @@ class ExamDetailPage extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _showComingSoon(context, 'Recordatorio'),
+                      onPressed: () => _scheduleReminder(context),
                       icon: const Icon(Icons.notifications_active_outlined),
                       label: const Text('Programar recordatorio'),
                     ),
@@ -212,6 +213,118 @@ class ExamDetailPage extends ConsumerWidget {
           SnackBar(content: Text('Error: $e')),
         );
       }
+    }
+  }
+
+  /// Muestra el bottom sheet para programar un recordatorio del ETS.
+  Future<void> _scheduleReminder(BuildContext context) async {
+    final option = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                '¿Cuándo quieres el recordatorio?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.today, color: AppColors.guindaIpn),
+              title: const Text('1 día antes'),
+              subtitle: const Text('Recordatorio el día previo'),
+              onTap: () => Navigator.pop(ctx, '1day'),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.timer_outlined,
+                color: AppColors.guindaIpn,
+              ),
+              title: const Text('1 hora antes'),
+              subtitle: const Text('Justo antes del examen'),
+              onTap: () => Navigator.pop(ctx, '1hour'),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.notifications_active,
+                color: AppColors.warning,
+              ),
+              title: const Text('Probar ahora'),
+              subtitle: const Text('Recibir notificación inmediata (test)'),
+              onTap: () => Navigator.pop(ctx, 'now'),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+
+    if (option == null || !context.mounted) return;
+
+    final service = sl<NotificationService>();
+    final notificationId = exam.id.hashCode;
+    final title = 'Recordatorio: ${exam.subject}';
+    final body = 'Tu ETS es en ${exam.building}, Salón ${exam.classroom}';
+
+    try {
+      if (option == 'now') {
+        await service.showNow(
+          id: notificationId,
+          title: title,
+          body: body,
+        );
+      } else {
+        DateTime scheduledTime;
+        if (option == '1day') {
+          scheduledTime = exam.date.subtract(const Duration(days: 1));
+        } else {
+          scheduledTime = exam.date.subtract(const Duration(hours: 1));
+        }
+
+        // Validar que la fecha no sea en el pasado.
+        if (scheduledTime.isBefore(DateTime.now())) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'No se puede programar: la fecha ya pasó. Usa "Probar ahora".',
+                ),
+                backgroundColor: AppColors.warning,
+              ),
+            );
+          }
+          return;
+        }
+
+        await service.scheduleNotification(
+          id: notificationId,
+          title: title,
+          body: body,
+          scheduledDate: scheduledTime,
+        );
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            option == 'now'
+                ? 'Notificación enviada 🔔'
+                : 'Recordatorio programado ✅',
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
