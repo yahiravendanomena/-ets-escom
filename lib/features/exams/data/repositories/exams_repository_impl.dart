@@ -6,6 +6,7 @@ import '../../domain/entities/exam.dart';
 import '../../domain/repositories/exams_repository.dart';
 import '../datasources/exams_local_datasource.dart';
 import '../datasources/exams_remote_datasource.dart';
+import '../models/exam_model.dart';
 /// Implementación del repositorio de ETS.
 ///
 /// Aplica la estrategia OFFLINE-FIRST:
@@ -148,6 +149,67 @@ class ExamsRepositoryImpl implements ExamsRepository {
       return Right(ids);
     } on CacheException catch (e) {
       return Left(CacheFailure(e.message));
+    }
+  }
+  @override
+  Future<Either<Failure, Exam>> createExam(Exam exam) async {
+    try {
+      final examModel = ExamModel(
+        id: exam.id,
+        subject: exam.subject,
+        careerCode: exam.careerCode,
+        semester: exam.semester,
+        date: exam.date,
+        shift: exam.shift,
+        classroom: exam.classroom,
+        building: exam.building,
+        professor: exam.professor,
+      );
+      final created = await remoteDataSource.createExam(examModel);
+      return Right(created);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Exam>> updateExam(Exam exam) async {
+    try {
+      final examModel = ExamModel(
+        id: exam.id,
+        subject: exam.subject,
+        careerCode: exam.careerCode,
+        semester: exam.semester,
+        date: exam.date,
+        shift: exam.shift,
+        classroom: exam.classroom,
+        building: exam.building,
+        professor: exam.professor,
+      );
+      final updated = await remoteDataSource.updateExam(examModel);
+      return Right(updated);
+    } on NotFoundException catch (e) {
+      return Left(NotFoundFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteExam(String examId) async {
+    try {
+      await remoteDataSource.deleteExam(examId);
+      return const Right(null);
+    } on NotFoundException catch (e) {
+      return Left(NotFoundFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Error: $e'));
     }
   }
 }

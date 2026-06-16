@@ -1,30 +1,33 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../../../injection_container.dart';
+import '../../domain/entities/exam.dart';
+import '../../domain/repositories/exams_repository.dart';
 import '../../domain/usecases/filter_exams_usecase.dart';
 import '../../domain/usecases/get_all_exams_usecase.dart';
 import '../../domain/usecases/get_favorite_exams_usecase.dart';
 import '../../domain/usecases/save_favorite_exam_usecase.dart';
-import '../../../../injection_container.dart';
 import 'exams_state.dart';
 
 /// Notifier que controla el estado de búsqueda de ETS.
-///
-/// Recibe los UseCases por inyección desde el service locator (sl).
 class ExamsNotifier extends StateNotifier<ExamsState> {
   final GetAllExamsUseCase _getAllExams;
   final FilterExamsUseCase _filterExams;
   final SaveFavoriteExamUseCase _saveFavorite;
   final GetFavoriteExamsUseCase _getFavorites;
+  final ExamsRepository _examsRepository;
 
   ExamsNotifier({
     required GetAllExamsUseCase getAllExams,
     required FilterExamsUseCase filterExams,
     required SaveFavoriteExamUseCase saveFavorite,
     required GetFavoriteExamsUseCase getFavorites,
+    required ExamsRepository examsRepository,
   })  : _getAllExams = getAllExams,
         _filterExams = filterExams,
         _saveFavorite = saveFavorite,
         _getFavorites = getFavorites,
+        _examsRepository = examsRepository,
         super(ExamsState.initial());
 
   /// Carga inicial: trae todos los ETS y los favoritos del usuario.
@@ -45,7 +48,6 @@ class ExamsNotifier extends StateNotifier<ExamsState> {
       },
     );
 
-    // Cargar favoritos en paralelo (no bloqueante).
     await _loadFavorites();
   }
 
@@ -115,12 +117,10 @@ class ExamsNotifier extends StateNotifier<ExamsState> {
     final isCurrentlyFavorite = state.favoriteIds.contains(examId);
 
     if (isCurrentlyFavorite) {
-      // Quitar de favoritos: actualizamos UI optimistamente.
       state = state.copyWith(
         favoriteIds: state.favoriteIds.where((id) => id != examId).toList(),
       );
     } else {
-      // Agregar a favoritos.
       await _saveFavorite(ExamIdParams(examId));
       state = state.copyWith(
         favoriteIds: [...state.favoriteIds, examId],
@@ -128,11 +128,69 @@ class ExamsNotifier extends StateNotifier<ExamsState> {
     }
   }
 
+  /// Crea un nuevo ETS y refresca la lista.
+  Future<bool> createExam(Exam exam) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    final result = await _examsRepository.createExam(exam);
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: failure.message,
+        );
+        return false;
+      },
+      (_) {
+        loadInitialData();
+        return true;
+      },
+    );
+  }
+
+  /// Actualiza un ETS existente.
+  Future<bool> updateExam(Exam exam) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    final result = await _examsRepository.updateExam(exam);
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: failure.message,
+        );
+        return false;
+      },
+      (_) {
+        loadInitialData();
+        return true;
+      },
+    );
+  }
+
+  /// Elimina un ETS.
+  Future<bool> deleteExam(String examId) async {
+    final result = await _examsRepository.deleteExam(examId);
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(errorMessage: failure.message);
+        return false;
+      },
+      (_) {
+        loadInitialData();
+        return true;
+      },
+    );
+  }
+
   /// Carga los IDs de favoritos del usuario.
   Future<void> _loadFavorites() async {
     final result = await _getFavorites(const NoParams());
     result.fold(
-      (_) => null, // Si falla, no bloqueamos la UI.
+      (_) => null,
       (exams) => state = state.copyWith(
         favoriteIds: exams.map((e) => e.id).toList(),
       ),
@@ -141,12 +199,12 @@ class ExamsNotifier extends StateNotifier<ExamsState> {
 }
 
 /// Provider global para acceder al ExamsNotifier desde cualquier widget.
-final examsProvider =
-    StateNotifierProvider<ExamsNotifier, ExamsState>((ref) {
+final examsProvider = StateNotifierProvider<ExamsNotifier, ExamsState>((ref) {
   return ExamsNotifier(
     getAllExams: sl(),
     filterExams: sl(),
     saveFavorite: sl(),
     getFavorites: sl(),
+    examsRepository: sl(),
   );
 });

@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:        # ← AGREGAR
+    sdk: flutter                # ← AGREGAR
   cupertino_icons: ^1.0.8
 
   # Estado

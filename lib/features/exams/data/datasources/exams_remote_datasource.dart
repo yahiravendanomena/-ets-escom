@@ -1,26 +1,18 @@
 import '../../../../core/errors/exceptions.dart';
 import '../models/exam_model.dart';
 
-/// Contrato del datasource remoto (API REST).
-///
-/// Define qué operaciones se hacen contra el backend.
 abstract class ExamsRemoteDataSource {
-  /// Obtiene todos los ETS desde la API.
-  /// Throws: [ServerException], [NetworkException].
   Future<List<ExamModel>> getAllExams();
-
-  /// Obtiene un ETS específico desde la API.
-  /// Throws: [NotFoundException], [ServerException].
   Future<ExamModel> getExamById(String id);
+  Future<ExamModel> createExam(ExamModel exam);
+  Future<ExamModel> updateExam(ExamModel exam);
+  Future<void> deleteExam(String examId);
 }
 
 /// Implementación con datos MOCK (de prueba).
-///
-/// TODO: Reemplazar por implementación real con Dio cuando el backend
-/// esté listo. Solo este archivo cambia, el resto de la arquitectura
-/// permanece intacto.
 class ExamsRemoteDataSourceMockImpl implements ExamsRemoteDataSource {
-  /// Datos de prueba: ETS simulados para desarrollar la UI.
+  /// Lista mutable de ETS en memoria.
+  /// En backend real, esto vendría de la base de datos.
   static final List<Map<String, dynamic>> _mockExamsJson = [
     {
       'id': 'ets-001',
@@ -114,9 +106,7 @@ class ExamsRemoteDataSourceMockImpl implements ExamsRemoteDataSource {
 
   @override
   Future<List<ExamModel>> getAllExams() async {
-    // Simula latencia de red real.
-    await Future.delayed(const Duration(milliseconds: 800));
-
+    await Future.delayed(const Duration(milliseconds: 400));
     try {
       return _mockExamsJson.map((json) => ExamModel.fromJson(json)).toList();
     } catch (e) {
@@ -126,80 +116,62 @@ class ExamsRemoteDataSourceMockImpl implements ExamsRemoteDataSource {
 
   @override
   Future<ExamModel> getExamById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-
+    await Future.delayed(const Duration(milliseconds: 200));
     try {
       final json = _mockExamsJson.firstWhere(
         (json) => json['id'] == id,
-        orElse: () => throw NotFoundException('ETS con id $id no encontrado'),
+        orElse: () => throw NotFoundException('ETS no encontrado'),
       );
       return ExamModel.fromJson(json);
     } on NotFoundException {
       rethrow;
     } catch (e) {
-      throw ServerException('Error obteniendo ETS: $e');
-    }
-  }
-}
-
-/* 
-================================================================================
-  📌 IMPLEMENTACIÓN REAL CON DIO (descomentarla cuando el backend esté listo)
-================================================================================
-
-import 'package:dio/dio.dart';
-
-class ExamsRemoteDataSourceImpl implements ExamsRemoteDataSource {
-  final Dio dio;
-  
-  static const String _baseUrl = 'https://tu-api.com/api/v1';
-
-  ExamsRemoteDataSourceImpl(this.dio);
-
-  @override
-  Future<List<ExamModel>> getAllExams() async {
-    try {
-      final response = await dio.get('$_baseUrl/exams');
-      
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? response.data;
-        return data.map((json) => ExamModel.fromJson(json)).toList();
-      } else {
-        throw ServerException('Error HTTP ${response.statusCode}');
-      }
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        throw NetworkException('Timeout: el servidor tardó mucho');
-      } else if (e.response?.statusCode == 404) {
-        throw NotFoundException('Recurso no encontrado');
-      } else if (e.response?.statusCode == 500) {
-        throw ServerException('Error interno del servidor');
-      }
-      throw NetworkException('Error de red: ${e.message}');
+      throw ServerException('Error: $e');
     }
   }
 
   @override
-  Future<ExamModel> getExamById(String id) async {
+  Future<ExamModel> createExam(ExamModel exam) async {
+    await Future.delayed(const Duration(milliseconds: 400));
     try {
-      final response = await dio.get('$_baseUrl/exams/$id');
-      
-      if (response.statusCode == 200) {
-        return ExamModel.fromJson(response.data);
-      } else if (response.statusCode == 404) {
-        throw NotFoundException('ETS no encontrado');
-      } else {
-        throw ServerException('Error HTTP ${response.statusCode}');
+      final json = exam.toJson();
+      _mockExamsJson.add(json);
+      return exam;
+    } catch (e) {
+      throw ServerException('Error creando ETS: $e');
+    }
+  }
+
+  @override
+  Future<ExamModel> updateExam(ExamModel exam) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    try {
+      final index = _mockExamsJson.indexWhere((j) => j['id'] == exam.id);
+      if (index == -1) {
+        throw NotFoundException('ETS no encontrado para actualizar');
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        throw NotFoundException('ETS no encontrado');
+      _mockExamsJson[index] = exam.toJson();
+      return exam;
+    } on NotFoundException {
+      rethrow;
+    } catch (e) {
+      throw ServerException('Error actualizando ETS: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteExam(String examId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      final index = _mockExamsJson.indexWhere((j) => j['id'] == examId);
+      if (index == -1) {
+        throw NotFoundException('ETS no encontrado para eliminar');
       }
-      throw NetworkException('Error de red: ${e.message}');
+      _mockExamsJson.removeAt(index);
+    } on NotFoundException {
+      rethrow;
+    } catch (e) {
+      throw ServerException('Error eliminando ETS: $e');
     }
   }
 }
-
-================================================================================
-*/
