@@ -75,10 +75,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       child: Text('Todas las carreras'),
                     ),
                     ..._careers.map(
-                      (c) => DropdownMenuItem<String?>(
-                        value: c,
-                        child: Text(c),
-                      ),
+                      (c) =>
+                          DropdownMenuItem<String?>(value: c, child: Text(c)),
                     ),
                   ],
                   onChanged: notifier.setCareer,
@@ -88,8 +86,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 Text(
                   'Semestre',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -97,7 +95,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   children: _semesters.map((sem) {
                     final isSelected = state.selectedSemester == sem;
                     return FilterChip(
-                      label: Text('$sem°'),
+                      label: Text(
+                        '$sem°',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       selected: isSelected,
                       onSelected: (selected) {
                         notifier.setSemester(selected ? sem : null);
@@ -110,9 +114,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ),
           const Divider(height: 1),
           // Sección de resultados.
-          Expanded(
-            child: _buildResults(state, notifier),
-          ),
+          Expanded(child: _buildResults(state, notifier)),
         ],
       ),
     );
@@ -130,11 +132,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                size: 64,
-                color: AppColors.error,
-              ),
+              const Icon(Icons.error_outline, size: 64, color: AppColors.error),
               const SizedBox(height: 12),
               Text(
                 state.errorMessage!,
@@ -186,9 +184,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             alignment: Alignment.centerLeft,
             child: Text(
               '${state.exams.length} ETS encontrados',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
             ),
           ),
         ),

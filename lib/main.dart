@@ -3,12 +3,23 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/app_theme.dart';
+
 import 'features/splash/splash_page.dart';
+
+import 'core/widgets/main_scaffold.dart';
+import 'core/services/notification_service.dart'; // NUEVO
+
 import 'injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_MX', null);
+
+  // Inicializa el servicio de notificaciones.
+  await NotificationService().init(); // NUEVO
+
+  // Inicializa todas las dependencias.
+
   await di.initDependencies();
 
   runApp(const ProviderScope(child: EtsEscomApp()));

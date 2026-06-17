@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:add_2_calendar/add_2_calendar.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../injection_container.dart';
-import '../../../notifications/services/notification_service.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../domain/entities/exam.dart';
 import '../providers/exams_notifier.dart';
 
@@ -52,7 +52,6 @@ class ExamDetailPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header con info principal
             Container(
               color: AppColors.guindaIpn,
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -85,7 +84,6 @@ class ExamDetailPage extends ConsumerWidget {
                 ],
               ),
             ),
-            // Cuerpo con la información
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -136,7 +134,6 @@ class ExamDetailPage extends ConsumerWidget {
                     value: exam.professor,
                   ),
                   const SizedBox(height: 24),
-                  // Botones de acción
                   Row(
                     children: [
                       Expanded(
@@ -149,10 +146,9 @@ class ExamDetailPage extends ConsumerWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () =>
-                              _showComingSoon(context, 'iCalendar'),
+                          onPressed: () => _addToCalendar(context, exam),
                           icon: const Icon(Icons.calendar_month_outlined),
-                          label: const Text('.ics'),
+                          label: const Text('Calendario'),
                         ),
                       ),
                     ],
@@ -161,7 +157,7 @@ class ExamDetailPage extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => _scheduleReminder(context),
+                      onPressed: () => _scheduleReminder(context, exam),
                       icon: const Icon(Icons.notifications_active_outlined),
                       label: const Text('Programar recordatorio'),
                     ),
@@ -216,116 +212,105 @@ class ExamDetailPage extends ConsumerWidget {
     }
   }
 
-  /// Muestra el bottom sheet para programar un recordatorio del ETS.
-  Future<void> _scheduleReminder(BuildContext context) async {
-    final option = await showModalBottomSheet<String>(
+  Future<void> _scheduleReminder(BuildContext context, Exam exam) async {
+    if (exam.date.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este examen ya pasó')),
+      );
+      return;
+    }
+
+    final int? hoursBefore = await showModalBottomSheet<int>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                '¿Cuándo quieres el recordatorio?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  '¿Cuándo quieres el recordatorio?',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.today, color: AppColors.guindaIpn),
-              title: const Text('1 día antes'),
-              subtitle: const Text('Recordatorio el día previo'),
-              onTap: () => Navigator.pop(ctx, '1day'),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.timer_outlined,
-                color: AppColors.guindaIpn,
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('1 hora antes'),
+                onTap: () => Navigator.pop(ctx, 1),
               ),
-              title: const Text('1 hora antes'),
-              subtitle: const Text('Justo antes del examen'),
-              onTap: () => Navigator.pop(ctx, '1hour'),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.notifications_active,
-                color: AppColors.warning,
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('1 día antes'),
+                onTap: () => Navigator.pop(ctx, 24),
               ),
-              title: const Text('Probar ahora'),
-              subtitle: const Text('Recibir notificación inmediata (test)'),
-              onTap: () => Navigator.pop(ctx, 'now'),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('3 días antes'),
+                onTap: () => Navigator.pop(ctx, 72),
+              ),
+            ],
+          ),
+        );
+      },
     );
 
-    if (option == null || !context.mounted) return;
+    if (hoursBefore == null) return;
 
-    final service = sl<NotificationService>();
-    final notificationId = exam.id.hashCode;
-    final title = 'Recordatorio: ${exam.subject}';
-    final body = 'Tu ETS es en ${exam.building}, Salón ${exam.classroom}';
+    final scheduledDate = exam.date.subtract(Duration(hours: hoursBefore));
 
-    try {
-      if (option == 'now') {
-        await service.showNow(
-          id: notificationId,
-          title: title,
-          body: body,
-        );
-      } else {
-        DateTime scheduledTime;
-        if (option == '1day') {
-          scheduledTime = exam.date.subtract(const Duration(days: 1));
-        } else {
-          scheduledTime = exam.date.subtract(const Duration(hours: 1));
-        }
-
-        // Validar que la fecha no sea en el pasado.
-        if (scheduledTime.isBefore(DateTime.now())) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'No se puede programar: la fecha ya pasó. Usa "Probar ahora".',
-                ),
-                backgroundColor: AppColors.warning,
-              ),
-            );
-          }
-          return;
-        }
-
-        await service.scheduleNotification(
-          id: notificationId,
-          title: title,
-          body: body,
-          scheduledDate: scheduledTime,
+    if (scheduledDate.isBefore(DateTime.now())) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Esa anticipación ya pasó, elige una más corta'),
+          ),
         );
       }
+      return;
+    }
 
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            option == 'now'
-                ? 'Notificación enviada 🔔'
-                : 'Recordatorio programado ✅',
+    final service = NotificationService();
+    final granted = await service.requestPermissions();
+    if (!granted) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Necesitas permitir notificaciones'),
           ),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } catch (e) {
-      if (!context.mounted) return;
+        );
+      }
+      return;
+    }
+
+    await service.scheduleReminder(
+      id: exam.id.hashCode,
+      title: 'ETS: ${exam.subject}',
+      body:
+          'Tu examen es el ${DateFormat("d 'de' MMMM 'a las' h:mm a", 'es_MX').format(exam.date)} en ${exam.building}, salón ${exam.classroom}.',
+      scheduledDate: scheduledDate,
+    );
+
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+        const SnackBar(
+          content: Text('Recordatorio programado ✅'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
+  }
+
+  Future<void> _addToCalendar(BuildContext context, Exam exam) async {
+    final event = Event(
+      title: 'ETS: ${exam.subject}',
+      description: 'Profesor: ${exam.professor}\nTurno: ${exam.shift.label}',
+      location: '${exam.building} · Salón ${exam.classroom}',
+      startDate: exam.date,
+      endDate: exam.date.add(const Duration(hours: 2)),
+    );
+
+    await Add2Calendar.addEvent2Cal(event);
   }
 
   void _showComingSoon(BuildContext context, String feature) {
@@ -338,7 +323,6 @@ class ExamDetailPage extends ConsumerWidget {
   }
 }
 
-/// Card de información con ícono, título y valor.
 class _DetailCard extends StatelessWidget {
   final IconData icon;
   final String title;
