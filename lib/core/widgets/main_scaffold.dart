@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/presentation/pages/admin_login_page.dart';
 import '../../features/exams/presentation/pages/favorites_page.dart';
 import '../../features/exams/presentation/pages/search_page.dart';
 import '../theme/app_colors.dart';
+import '../theme/theme_provider.dart';
 
 /// Scaffold principal de la app con Bottom Navigation Bar.
 ///
@@ -10,14 +12,14 @@ import '../theme/app_colors.dart';
 /// - Buscar ETS (público)
 /// - Favoritos (público, persistentes)
 /// - Admin (login y panel administrativo)
-class MainScaffold extends StatefulWidget {
+class MainScaffold extends ConsumerStatefulWidget {
   const MainScaffold({super.key});
 
   @override
-  State<MainScaffold> createState() => _MainScaffoldState();
+  ConsumerState<MainScaffold> createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> {
+class _MainScaffoldState extends ConsumerState<MainScaffold> {
   int _currentIndex = 0;
 
   // Las 3 pantallas. Se mantienen vivas para preservar el estado.
@@ -29,10 +31,45 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _pages,
+          ),
+          // Botón flotante de Dark Mode (esquina superior derecha).
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 8,
+            child: Material(
+              color: Colors.transparent,
+              child: IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode : Icons.dark_mode,
+                  color: Colors.white,
+                ),
+                tooltip: isDark ? 'Modo claro' : 'Modo oscuro',
+                onPressed: () {
+                  ref.read(themeProvider.notifier).toggleTheme();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        themeMode == ThemeMode.dark
+                            ? 'Modo claro activado ☀️'
+                            : 'Modo oscuro activado 🌙',
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,

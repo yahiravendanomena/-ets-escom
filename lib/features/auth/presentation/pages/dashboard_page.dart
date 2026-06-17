@@ -5,6 +5,7 @@ import '../../../admin/presentation/pages/exam_form_page.dart';
 import '../../../admin/presentation/pages/exams_management_page.dart';
 import '../../../exams/presentation/providers/exams_notifier.dart';
 import '../providers/auth_notifier.dart';
+import '../../../catalogs/presentation/pages/catalogs_page.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -31,7 +32,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final totalExams = examsState.exams.length;
     final examsByCareer = <String, int>{};
     for (final exam in examsState.exams) {
-      examsByCareer[exam.careerCode] = (examsByCareer[exam.careerCode] ?? 0) + 1;
+      examsByCareer[exam.careerCode] =
+          (examsByCareer[exam.careerCode] ?? 0) + 1;
     }
     final totalCareers = examsByCareer.keys.length;
     final totalFavorites = examsState.favoriteIds.length;
@@ -263,11 +265,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             _ActionTile(
               icon: Icons.school_outlined,
               title: 'Catálogos',
-              subtitle: 'Carreras y salones',
+              subtitle: 'Carreras y edificios',
               color: AppColors.info,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Catálogos: próximamente')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CatalogsPage()),
                 );
               },
             ),

@@ -30,6 +30,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(examsProvider);
     final notifier = ref.read(examsProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final secondaryColor =
+        isDark ? Colors.grey.shade300 : AppColors.textSecondary;
 
     return Scaffold(
       appBar: AppBar(
@@ -86,8 +89,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 Text(
                   'Semestre',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                        color: secondaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -97,8 +101,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     return FilterChip(
                       label: Text(
                         '$sem°',
-                        style: const TextStyle(
-                          color: Colors.black,
+                        style: TextStyle(
+                          color: isSelected
+                              ? (isDark ? Colors.white : AppColors.guindaIpn)
+                              : (isDark ? Colors.white : Colors.black87),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -112,7 +118,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(
+            height: 1,
+            color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+          ),
           // Sección de resultados.
           Expanded(child: _buildResults(state, notifier)),
         ],
@@ -121,6 +130,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 
   Widget _buildResults(state, notifier) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final secondaryColor =
+        isDark ? Colors.grey.shade300 : AppColors.textSecondary;
+
     if (state.isLoading && state.exams.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -158,10 +171,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.search_off_rounded,
                 size: 64,
-                color: AppColors.textSecondary,
+                color: secondaryColor,
               ),
               const SizedBox(height: 12),
               Text(
@@ -184,9 +197,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             alignment: Alignment.centerLeft,
             child: Text(
               '${state.exams.length} ETS encontrados',
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: secondaryColor,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
         ),

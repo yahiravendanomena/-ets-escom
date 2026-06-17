@@ -21,6 +21,9 @@ class ExamCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryColor =
+        isDark ? Colors.grey.shade300 : AppColors.textSecondary;
     final dateFormat = DateFormat('d MMM yyyy', 'es_MX');
     final timeFormat = DateFormat('h:mm a', 'es_MX');
 
@@ -64,14 +67,16 @@ class ExamCard extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.guindaIpn.withValues(
-                                  alpha: 0.1,
+                                  alpha: isDark ? 0.3 : 0.1,
                                 ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 exam.careerCode,
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: AppColors.guindaIpn,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.guindaIpn,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -80,7 +85,7 @@ class ExamCard extends StatelessWidget {
                             Text(
                               'Semestre ${exam.semester}°',
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: AppColors.textSecondary,
+                                color: secondaryColor,
                               ),
                             ),
                           ],
@@ -92,16 +97,17 @@ class ExamCard extends StatelessWidget {
                     onPressed: onFavoriteToggle,
                     icon: Icon(
                       isFavorite ? Icons.star_rounded : Icons.star_outline,
-                      color: isFavorite
-                          ? AppColors.warning
-                          : AppColors.textSecondary,
+                      color: isFavorite ? AppColors.warning : secondaryColor,
                     ),
                     tooltip: isFavorite ? 'Quitar favorito' : 'Marcar favorito',
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              const Divider(height: 1),
+              Divider(
+                height: 1,
+                color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+              ),
               const SizedBox(height: 12),
               // Detalles del ETS
               _DetailRow(
@@ -140,14 +146,19 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final iconColor = isDark ? Colors.grey.shade300 : AppColors.textSecondary;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
+        Icon(icon, size: 16, color: iconColor),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             label,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
           ),
         ),
       ],

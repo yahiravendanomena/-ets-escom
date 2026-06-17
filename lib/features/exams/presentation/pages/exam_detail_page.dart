@@ -1,10 +1,13 @@
+import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:add_2_calendar/add_2_calendar.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/exam.dart';
 import '../providers/exams_notifier.dart';
 
@@ -138,7 +141,7 @@ class ExamDetailPage extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _showComingSoon(context, 'PDF'),
+                          onPressed: () => _exportToPdf(context),
                           icon: const Icon(Icons.picture_as_pdf_outlined),
                           label: const Text('PDF'),
                         ),
@@ -304,20 +307,159 @@ class ExamDetailPage extends ConsumerWidget {
   Future<void> _addToCalendar(BuildContext context, Exam exam) async {
     final event = Event(
       title: 'ETS: ${exam.subject}',
-      description: 'Profesor: ${exam.professor}\nTurno: ${exam.shift.label}',
+      description: 'Examen a Título de Suficiencia\n'
+          'Carrera: ${exam.careerCode}\n'
+          'Semestre: ${exam.semester}°\n'
+          'Profesor: ${exam.professor}\n'
+          'Turno: ${exam.shift.label}',
       location: '${exam.building} · Salón ${exam.classroom}',
       startDate: exam.date,
       endDate: exam.date.add(const Duration(hours: 2)),
+      iosParams: const IOSParams(reminder: Duration(hours: 1)),
     );
 
-    await Add2Calendar.addEvent2Cal(event);
+    try {
+      final success = await Add2Calendar.addEvent2Cal(event);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Evento agregado al calendario 📅'
+                : 'No se pudo agregar el evento',
+          ),
+          backgroundColor: success ? AppColors.success : AppColors.warning,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature: próximamente'),
-        behavior: SnackBarBehavior.floating,
+  /// Genera un PDF con la información del ETS y lo imprime/descarga.
+  Future<void> _exportToPdf(BuildContext context) async {
+    try {
+      final dateFormat = DateFormat("EEEE, d 'de' MMMM 'de' y", 'es_MX');
+      final timeFormat = DateFormat('h:mm a', 'es_MX');
+
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.letter,
+          build: (context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(20),
+                  decoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFF7B1538),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'ETS ESCOM',
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontSize: 12,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        exam.subject,
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontSize: 22,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        '${exam.careerCode}  |  Semestre ${exam.semester}',
+                        style: const pw.TextStyle(
+                          color: PdfColors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 24),
+                _pdfRow('Fecha:', dateFormat.format(exam.date)),
+                _pdfRow('Hora:', timeFormat.format(exam.date)),
+                _pdfRow('Turno:', exam.shift.label),
+                _pdfRow('Edificio:', exam.building),
+                _pdfRow('Salon:', exam.classroom),
+                _pdfRow('Profesor:', exam.professor),
+                pw.SizedBox(height: 30),
+                pw.Divider(),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  'Recuerda:',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 6),
+                pw.Bullet(text: 'Llegar 15 minutos antes.'),
+                pw.Bullet(text: 'Llevar identificacion oficial.'),
+                pw.Bullet(text: 'Calculadora cientifica si aplica.'),
+                pw.Bullet(text: 'No se permite el uso de celular.'),
+                pw.Spacer(),
+                pw.Center(
+                  child: pw.Text(
+                    'Generado por ETS ESCOM - ${DateTime.now().year}',
+                    style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+      await Printing.layoutPdf(
+        onLayout: (format) => pdf.save(),
+        name: 'ETS_${exam.subject.replaceAll(' ', '_')}.pdf',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generando PDF: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  /// Fila de detalle en el PDF.
+  pw.Widget _pdfRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 100,
+            child: pw.Text(
+              label,
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.Expanded(child: pw.Text(value)),
+        ],
       ),
     );
   }
@@ -338,22 +480,33 @@ class _DetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+        ),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.guindaIpn.withValues(alpha: 0.1),
+              color: AppColors.guindaIpn.withValues(
+                alpha: isDark ? 0.3 : 0.1,
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: AppColors.guindaIpn, size: 22),
+            child: Icon(
+              icon,
+              color: isDark ? Colors.white : AppColors.guindaIpn,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -364,15 +517,16 @@ class _DetailCard extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
               ],
