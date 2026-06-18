@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../providers/auth_notifier.dart';
 import '../providers/auth_state.dart';
 import 'dashboard_page.dart';
@@ -37,6 +38,9 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final secondaryColor =
+        isDark ? Colors.grey.shade300 : AppColors.textSecondary;
 
     // Si está autenticado, mostrar dashboard.
     if (state.isAuthenticated) {
@@ -62,6 +66,20 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
       appBar: AppBar(
         title: const Text('Acceso Administrativo'),
         backgroundColor: AppColors.adminGreen,
+        actions: [
+          // Toggle Dark Mode
+          Consumer(
+            builder: (context, ref, _) {
+              final themeMode = ref.watch(themeProvider);
+              final isDarkMode = themeMode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                tooltip: isDarkMode ? 'Modo claro' : 'Modo oscuro',
+                onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -76,13 +94,15 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.adminGreen.withValues(alpha: 0.1),
+                      color: AppColors.adminGreen.withValues(
+                        alpha: isDark ? 0.25 : 0.1,
+                      ),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.admin_panel_settings_rounded,
                       size: 64,
-                      color: AppColors.adminGreen,
+                      color: isDark ? Colors.white : AppColors.adminGreen,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -94,7 +114,7 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                   Text(
                     'Ingresa tus credenciales para acceder',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: secondaryColor,
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -176,7 +196,8 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                               ),
                             )
                           : const Icon(Icons.login_rounded),
-                      label: Text(isLoading ? 'Validando...' : 'Iniciar sesión'),
+                      label:
+                          Text(isLoading ? 'Validando...' : 'Iniciar sesión'),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -185,22 +206,36 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
-                      border: Border.all(color: Colors.amber.shade200),
+                      color: isDark
+                          ? Colors.amber.withValues(alpha: 0.15)
+                          : Colors.amber.shade50,
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.amber.withValues(alpha: 0.4)
+                            : Colors.amber.shade200,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.info_outline,
-                                size: 16, color: Colors.amber),
-                            SizedBox(width: 6),
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: isDark
+                                  ? Colors.amber.shade300
+                                  : Colors.amber.shade800,
+                            ),
+                            const SizedBox(width: 6),
                             Text(
                               'Credenciales de prueba',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
+                                color: isDark
+                                    ? Colors.amber.shade300
+                                    : Colors.amber.shade800,
                               ),
                             ),
                           ],
@@ -208,7 +243,12 @@ class _AdminLoginPageState extends ConsumerState<AdminLoginPage> {
                         const SizedBox(height: 8),
                         Text(
                           'admin / Admin123!\nescom / Escom2026',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
                           textAlign: TextAlign.center,
                         ),
                       ],

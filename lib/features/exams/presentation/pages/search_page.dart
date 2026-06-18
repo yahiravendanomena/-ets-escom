@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../providers/exams_notifier.dart';
 import '../widgets/exam_card.dart';
 import 'exam_detail_page.dart';
+import '../../../../core/theme/theme_provider.dart';
 
 /// Pantalla principal: búsqueda y consulta pública de ETS.
 class SearchPage extends ConsumerStatefulWidget {
@@ -38,6 +39,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       appBar: AppBar(
         title: const Text('ETS ESCOM'),
         actions: [
+          // Toggle Dark Mode
+          Consumer(
+            builder: (context, ref, _) {
+              final themeMode = ref.watch(themeProvider);
+              final isDark = themeMode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+                tooltip: isDark ? 'Modo claro' : 'Modo oscuro',
+                onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+              );
+            },
+          ),
           if (state.selectedCareer != null ||
               state.selectedSemester != null ||
               state.subjectQuery.isNotEmpty)

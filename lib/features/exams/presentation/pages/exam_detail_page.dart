@@ -10,6 +10,7 @@ import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/exam.dart';
 import '../providers/exams_notifier.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Pantalla de detalle de un ETS.
 class ExamDetailPage extends ConsumerWidget {
@@ -216,6 +217,19 @@ class ExamDetailPage extends ConsumerWidget {
   }
 
   Future<void> _scheduleReminder(BuildContext context, Exam exam) async {
+    // Las notificaciones locales NO funcionan en web.
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Las notificaciones solo funcionan en celular 📱',
+          ),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
     if (exam.date.isBefore(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Este examen ya pasó')),
@@ -305,6 +319,19 @@ class ExamDetailPage extends ConsumerWidget {
   }
 
   Future<void> _addToCalendar(BuildContext context, Exam exam) async {
+    // El paquete add_2_calendar NO funciona en web.
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Esta función solo está disponible en celular 📱',
+          ),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
     final event = Event(
       title: 'ETS: ${exam.subject}',
       description: 'Examen a Título de Suficiencia\n'
